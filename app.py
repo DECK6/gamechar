@@ -49,7 +49,7 @@ def analyze_image(image_url):
 def generate_game_character(prompt):
     response = client.images.generate(
         model="dall-e-3",
-        prompt=f"2D dot game graphic character looks like {prompt}",
+        prompt=f"2D dot retro game graphic character, {prompt}",
         size="1024x1024",
         quality="standard",
         n=1,
