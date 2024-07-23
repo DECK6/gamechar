@@ -32,7 +32,7 @@ def analyze_image(image_url):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 묘사해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착하여 영문 이미지 프롬프트 형태로 제공합니다."},
+                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 기반으로 2D RPG 도트 게임의 고해상도 스프라이트로 만들기 위해 리그오브레전드의 캐릭터 프로필 풍으로 가공하여 영문 이미지 프롬프트 형태로 제공합니다."},
                     {
                         "type": "image_url",
                         "image_url": {
@@ -49,7 +49,7 @@ def analyze_image(image_url):
 def generate_game_character(prompt):
     response = client.images.generate(
         model="dall-e-3",
-        prompt=f"Create a profile picture for a 2d dot rpg game character that reflects the following characteristics The attire and mood should be changed to fit the fantasy world.  {prompt}. The character should be cute and simple, suitable for a 'league of legend' game. draw only one character",
+        prompt=f"{prompt}",
         size="1024x1024",
         quality="standard",
         n=1,
