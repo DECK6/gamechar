@@ -32,7 +32,7 @@ def analyze_image(image_url):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 기반으로 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 2D 레트로 RPG 게임의 도트 일러스트 느낌을 주는 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
+                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 기반으로 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
                     {
                         "type": "image_url",
                         "image_url": {
@@ -46,10 +46,16 @@ def analyze_image(image_url):
     )
     return response.choices[0].message.content
 
-def generate_game_character(prompt):
+def generate_game_character(prompt, style):
+    style_prompts = {
+        "도트그래픽": "2D pixel art retro game character, top-down view",
+        "일러스트": "2D illustrated game character portrait, anime style",
+        "3D 게임 캐릭터": "3D rendered game character model, realistic style"
+    }
+    full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
         model="dall-e-3",
-        prompt=f"2D dot retro game graphic character, {prompt}",
+        prompt=full_prompt,
         size="1024x1024",
         quality="standard",
         n=1,
@@ -57,7 +63,7 @@ def generate_game_character(prompt):
     image_url = response.data[0].url
     return image_url
 
-def process_image(image_data):
+def process_image(image_data, style):
     # 이미지를 imgbb에 업로드
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
@@ -71,12 +77,11 @@ def process_image(image_data):
                 with st.spinner("이미지를 분석하고 있어요..."):
                     description = analyze_image(image_url)
                 
+                with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
+                    game_character_url = generate_game_character(description, style)
                 
-                with st.spinner("게임 캐릭터를 그리고 있어요..."):
-                    game_character_url = generate_game_character(description)
-                
-                st.write("🎉 완성된 게임 캐릭터:")
-                st.image(game_character_url, caption="나만의 게임 캐릭터", use_column_width=True)
+                st.write(f"🎉 완성된 {style} 게임 캐릭터:")
+                st.image(game_character_url, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
             finally:
                 # 이미지 삭제
@@ -92,10 +97,13 @@ def main():
     st.markdown("""
     안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
     사용 방법은 아주 간단해요:
-    1. 사진을 올리거나 카메라로 찍어주세요.
-    2. '게임 캐릭터 만들기' 버튼을 눌러주세요.
-    3. 마법처럼 변신한 캐릭터를 확인하세요!
+    1. 원하는 캐릭터 스타일을 선택해주세요.
+    2. 사진을 올리거나 카메라로 찍어주세요.
+    3. '게임 캐릭터 만들기' 버튼을 눌러주세요.
+    4. 마법처럼 변신한 캐릭터를 확인하세요!
     """)
+    
+    style = st.selectbox("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽", "일러스트", "3D 게임 캐릭터"])
     
     image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
     
@@ -103,12 +111,12 @@ def main():
         uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
             image_data = uploaded_file.getvalue()
-            process_image(image_data)
+            process_image(image_data, style)
     else:
         camera_image = st.camera_input("사진을 찍어주세요")
         if camera_image is not None:
             image_data = camera_image.getvalue()
-            process_image(image_data)
+            process_image(image_data, style)
 
     st.markdown("""
     ---
