@@ -48,9 +48,9 @@ def analyze_image(image_url):
 
 def generate_game_character(prompt, style):
     style_prompts = {
-        "도트그래픽": "2D pixel art retro game character, top-down view",
+        "도트그래픽": "2D pixel art retro game character potrait",
         "일러스트": "2D illustrated game character portrait, anime style",
-        "3D 게임 캐릭터": "3D rendered game character model, realistic style"
+        "3D 게임 캐릭터": "3D rendered game character model, unreal engine, realistic style"
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
