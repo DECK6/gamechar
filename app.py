@@ -128,6 +128,8 @@ def process_image(image_data, style, result_column):
         st.session_state.email_sent = None
     if 'final_image' not in st.session_state:
         st.session_state.final_image = None
+    if 'processing_complete' not in st.session_state:
+        st.session_state.processing_complete = False
 
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
@@ -137,31 +139,34 @@ def process_image(image_data, style, result_column):
         button_col, preview_col = st.columns([1, 2])
         
         with button_col:
-            if st.button("게임 캐릭터 만들기"):
-                try:
-                    with st.spinner("이미지를 분석하고 있어요..."):
-                        description = analyze_image(image_url)
+            if st.button("게임 캐릭터 만들기") or ('generate_character' in st.session_state and st.session_state.generate_character):
+                st.session_state.generate_character = False
+                if not st.session_state.processing_complete:
+                    try:
+                        with st.spinner("이미지를 분석하고 있어요..."):
+                            description = analyze_image(image_url)
+                        
+                        with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
+                            game_character_url = generate_game_character(description, style)
+                        
+                        with st.spinner("로고를 추가하고 있어요..."):
+                            st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
+                        
+                        st.session_state.processing_complete = True
+                        st.experimental_rerun()
                     
-                    with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
-                        game_character_url = generate_game_character(description, style)
-                    
-                    with st.spinner("로고를 추가하고 있어요..."):
-                        st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
-                    
-                    st.experimental_rerun()
-                
-                finally:
-                    if delete_image_from_imgbb(delete_url):
-                        st.success("입력된 이미지가 안전하게 지워졌어요.")
-                    else:
-                        st.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
+                    finally:
+                        if delete_image_from_imgbb(delete_url):
+                            st.success("입력된 이미지가 안전하게 지워졌어요.")
+                        else:
+                            st.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
         
         with preview_col:
             preview_image = Image.open(BytesIO(image_data))
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
 
-    if st.session_state.final_image is not None:
+    if st.session_state.processing_complete and st.session_state.final_image is not None:
         with result_column:
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
