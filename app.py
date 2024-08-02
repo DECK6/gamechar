@@ -63,70 +63,77 @@ def generate_game_character(prompt, style):
     image_url = response.data[0].url
     return image_url
 
-def process_image(image_data, style):
-    # 이미지를 imgbb에 업로드
+def process_image(image_data, style, result_placeholder):
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
         image_url = upload_response["data"]["url"]
         delete_url = upload_response["data"]["delete_url"]
         
-        st.image(image_url, caption="입력된 이미지", use_column_width=True)
+        result_placeholder.image(image_url, caption="찍은 사진", use_column_width=True)
         
-        if st.button("게임 캐릭터 만들기"):
+        if result_placeholder.button("게임 캐릭터 만들기"):
             try:
-                with st.spinner("이미지를 분석하고 있어요..."):
+                with result_placeholder.spinner("이미지를 분석하고 있어요..."):
                     description = analyze_image(image_url)
                 
-                with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
+                with result_placeholder.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
                     game_character_url = generate_game_character(description, style)
                 
-                st.write(f"🎉 완성된 {style} 게임 캐릭터:")
-                st.image(game_character_url, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+                result_placeholder.write(f"🎉 완성된 {style} 게임 캐릭터:")
+                result_placeholder.image(game_character_url, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
             finally:
-                # 이미지 삭제
                 if delete_image_from_imgbb(delete_url):
-                    st.success("입력된 이미지가 안전하게 지워졌어요.")
+                    result_placeholder.success("입력된 이미지가 안전하게 지워졌어요.")
                 else:
-                    st.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
+                    result_placeholder.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
 
 def main():
-    st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮")
+    st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
     st.title("🖼️ 사진으로 게임 캐릭터 만들기")
     
-    st.markdown("""
-    안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
-    사용 방법은 아주 간단해요:
-    1. 원하는 캐릭터 스타일을 선택해주세요.
-    2. 사진을 올리거나 카메라로 찍어주세요.
-    3. '게임 캐릭터 만들기' 버튼을 눌러주세요.
-    4. 마법처럼 변신한 캐릭터를 확인하세요!
-    """)
+    col1, col2 = st.columns(2)
     
-    style = st.radio("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽", "일러스트", "3D 게임 캐릭터"])
-   
-  
-    image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
-    
-    if image_source == "파일 업로드":
-        uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
-        if uploaded_file is not None:
-            image_data = uploaded_file.getvalue()
-            process_image(image_data, style)
-    else:
+    with col1:
+        st.markdown("""
+        안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
+        사용 방법은 아주 간단해요:
+        1. 원하는 캐릭터 스타일을 선택해주세요.
+        2. 카메라로 사진을 찍어주세요.
+        3. '게임 캐릭터 만들기' 버튼을 눌러주세요.
+        4. 마법처럼 변신한 캐릭터를 확인하세요!
+        """)
+        
+        style = st.radio("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽", "일러스트", "3D 게임 캐릭터"])
+        
+        # 파일 업로드 옵션 주석 처리
+        # image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
+        
+        # if image_source == "파일 업로드":
+        #     uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
+        #     if uploaded_file is not None:
+        #         image_data = uploaded_file.getvalue()
+        #         process_image(image_data, style, col2)
+        # else:
         camera_image = st.camera_input("사진을 찍어주세요")
         if camera_image is not None:
             image_data = camera_image.getvalue()
-            process_image(image_data, style)
-
-    st.markdown("""
-    ---
-    ⚠️ 주의사항:
-    - 만들어진 캐릭터는 저장해두세요. 나중에 다시 볼 수 없어요.
-    - 하루에 너무 많은 사진을 변환하면 기다려야 할 수 있어요.
+            process_image(image_data, style, col2)
     
-    즐겁게 사용해주세요! 😊
-    """)
+    with col2:
+        st.markdown("""
+        ### 결과
+        여기에 변환된 게임 캐릭터가 표시됩니다.
+        """)
+        
+        st.markdown("""
+        ---
+        ### ⚠️ 주의사항:
+        - 만들어진 캐릭터는 저장해두세요. 나중에 다시 볼 수 없어요.
+        - 하루에 너무 많은 사진을 변환하면 기다려야 할 수 있어요.
+        
+        즐겁게 사용해주세요! 😊
+        """)
 
 if __name__ == "__main__":
     main()
