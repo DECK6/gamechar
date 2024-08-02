@@ -93,7 +93,6 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-# 새로운 이메일 전송 함수
 def send_email(recipient_email, image_data, style):
     sender_email = st.secrets["SENDER_EMAIL"]
     sender_password = st.secrets["SENDER_PASSWORD"]
@@ -106,7 +105,8 @@ def send_email(recipient_email, image_data, style):
     text = MIMEText(f"Here's your generated {style} game character!")
     msg.attach(text)
 
-    image = MIMEImage(image_data, name="game_character.png")
+    image = MIMEImage(image_data)
+    image.add_header('Content-Disposition', 'attachment', filename=f"{style}_game_character.png")
     msg.attach(image)
 
     try:
@@ -144,13 +144,21 @@ def process_image(image_data, style, result_column):
                         st.write(f"🎉 완성된 {style} 게임 캐릭터:")
                         st.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
                         
-                        # 이메일 전송 옵션 추가
+                        # 이메일 입력 필드와 전송 버튼 추가
                         recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
-                        if st.button("이메일로 전송") and recipient_email:
-                            if send_email(recipient_email, final_image, style):
-                                st.success("이메일이 성공적으로 전송되었습니다!")
+                        if st.button("이메일로 전송"):
+                            if recipient_email:
+                                # BytesIO에서 바이트 데이터 추출
+                                image_bytes = BytesIO()
+                                Image.open(BytesIO(final_image)).save(image_bytes, format='PNG')
+                                image_bytes = image_bytes.getvalue()
+                                
+                                if send_email(recipient_email, image_bytes, style):
+                                    st.success("이메일이 성공적으로 전송되었습니다!")
+                                else:
+                                    st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
                             else:
-                                st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
+                                st.warning("이메일 주소를 입력해주세요.")
                 
                 finally:
                     if delete_image_from_imgbb(delete_url):
@@ -162,6 +170,7 @@ def process_image(image_data, style, result_column):
             preview_image = Image.open(BytesIO(image_data))
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
+
 
             
 def main():
