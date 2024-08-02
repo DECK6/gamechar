@@ -92,34 +92,34 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-def process_image(image_data, style, result_placeholder):
+def process_image(image_data, style):
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
         image_url = upload_response["data"]["url"]
         delete_url = upload_response["data"]["delete_url"]
         
-        result_placeholder.image(image_url, caption="입력된 이미지", use_column_width=True)
+        st.image(image_url, caption="입력된 이미지", use_column_width=True)
         
-        if result_placeholder.button("게임 캐릭터 만들기"):
+        if st.button("게임 캐릭터 만들기"):
             try:
-                with result_placeholder.spinner("이미지를 분석하고 있어요..."):
+                with st.spinner("이미지를 분석하고 있어요..."):
                     description = analyze_image(image_url)
                 
-                with result_placeholder.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
+                with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
                     game_character_url = generate_game_character(description, style)
                 
                 # 로고 추가
-                with result_placeholder.spinner("로고를 추가하고 있어요..."):
+                with st.spinner("로고를 추가하고 있어요..."):
                     final_image = add_logo_to_image(game_character_url, LOGO_URL)
                 
-                result_placeholder.write(f"🎉 완성된 {style} 게임 캐릭터:")
-                result_placeholder.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+                st.write(f"🎉 완성된 {style} 게임 캐릭터:")
+                st.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
             finally:
                 if delete_image_from_imgbb(delete_url):
-                    result_placeholder.success("입력된 이미지가 안전하게 지워졌어요.")
+                    st.success("입력된 이미지가 안전하게 지워졌어요.")
                 else:
-                    result_placeholder.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
+                    st.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
 
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
@@ -149,12 +149,12 @@ def main():
             uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
                 image_data = uploaded_file.getvalue()
-                process_image(image_data, style, col2)
+                process_image(image_data, style)
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 image_data = camera_image.getvalue()
-                process_image(image_data, style, col2)
+                process_image(image_data, style)
     
     with col2:
         st.markdown("""
