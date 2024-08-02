@@ -98,9 +98,6 @@ def add_logo_to_image(image_url, logo_url):
     return buffered.getvalue()
 
 async def send_email_async(recipient_email, image_data, style):
-    if not EMAIL_ENABLED:
-        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
-        return False
 
     msg = MIMEMultipart()
     msg['Subject'] = f'Your {style} Game Character'
