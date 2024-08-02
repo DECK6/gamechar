@@ -14,11 +14,15 @@ import aiomysql
 
 # 이메일 설정을 위한 전역 변수
 EMAIL_SETTINGS = {
-    "SENDER_EMAIL": st.secrets.get("SENDER_EMAIL", ""),
-    "SENDER_PASSWORD": st.secrets.get("SENDER_PASSWORD", ""),
+    "SENDER_EMAIL": st.secrets["SENDER_EMAIL"],
+    "SENDER_PASSWORD": st.secrets["SENDER_PASSWORD"],
     "SMTP_SERVER": "smtp.gmail.com",
     "SMTP_PORT": 587
 }
+
+# 디버그 정보 출력 (실제 운영 환경에서는 제거해야 합니다)
+st.write(f"Sender Email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
+st.write(f"Sender Password: {'*' * len(EMAIL_SETTINGS['SENDER_PASSWORD'])}")
 
 # Streamlit secrets에서 API 키 가져오기
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -175,7 +179,7 @@ def process_image(image_data, style, result_column):
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
 
-    if st.session_state.processing_complete and st.session_state.final_image is not None:
+      if st.session_state.processing_complete and st.session_state.final_image is not None:
         with result_column:
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
