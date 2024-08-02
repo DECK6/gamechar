@@ -105,12 +105,13 @@ def add_logo_to_image(image_url, logo_url):
     return buffered.getvalue()
 
 async def send_email_async(recipient_email, image_data, style):
-    sender_email = st.secrets["SENDER_EMAIL"]
-    sender_password = st.secrets["SENDER_PASSWORD"]
-    
+    if not EMAIL_SETTINGS["SENDER_EMAIL"] or not EMAIL_SETTINGS["SENDER_PASSWORD"]:
+        st.error("이메일 설정이 완료되지 않았습니다. 관리자에게 문의하세요.")
+        return False
+
     msg = MIMEMultipart()
     msg['Subject'] = f'Your {style} Game Character'
-    msg['From'] = sender_email
+    msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
     text = MIMEText(f"Here's your generated {style} game character!")
@@ -121,9 +122,9 @@ async def send_email_async(recipient_email, image_data, style):
     msg.attach(image)
 
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP(EMAIL_SETTINGS["SMTP_SERVER"], EMAIL_SETTINGS["SMTP_PORT"])
         await asyncio.to_thread(server.starttls)
-        await asyncio.to_thread(server.login, sender_email, sender_password)
+        await asyncio.to_thread(server.login, EMAIL_SETTINGS["SENDER_EMAIL"], EMAIL_SETTINGS["SENDER_PASSWORD"])
         await asyncio.to_thread(server.send_message, msg)
         server.quit()
         return True
@@ -182,12 +183,15 @@ def process_image(image_data, style, result_column):
             recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
             if st.button("이메일로 전송"):
                 if recipient_email:
-                    with st.spinner("이메일을 전송 중입니다..."):
-                        image_bytes = BytesIO()
-                        Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
-                        image_bytes = image_bytes.getvalue()
-                        
-                        st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
+                    if not EMAIL_SETTINGS["SENDER_EMAIL"] or not EMAIL_SETTINGS["SENDER_PASSWORD"]:
+                        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
+                    else:
+                        with st.spinner("이메일을 전송 중입니다..."):
+                            image_bytes = BytesIO()
+                            Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
+                            image_bytes = image_bytes.getvalue()
+                            
+                            st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
                 else:
                     st.warning("이메일 주소를 입력해주세요.")
             
