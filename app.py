@@ -36,7 +36,7 @@ def analyze_image(image_url):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 기반으로 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
+                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 유지한채 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
                     {
                         "type": "image_url",
                         "image_url": {
@@ -54,7 +54,7 @@ def generate_game_character(prompt, style):
     style_prompts = {
         "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of Super deformed 2D pixel art retro game character, showing character potrait only, not character chart",
         "2D 일러스트(애니메이션 st.)": "potrait of 2D illustrated anime character, showing character potrait only, not character chart, anime style",
-        "3D 게임 캐릭터": "potrait of Super deformed 3D rendered game character model, showing character potrait only, not character chart"
+        "3D 게임 캐릭터": "potrait of Super deformed 3D rendered game character like overwatch, showing character potrait only, not character chart"
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
