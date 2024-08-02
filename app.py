@@ -180,11 +180,6 @@ def main():
     # Streamlit 버전 출력
     st.write(f"Streamlit version: {st.__version__}")
 
-    # 시크릿 디버깅
-    st.write("Secrets debug:")
-    for key in st.secrets.keys():
-        st.write(f"- {key}: {'*' * len(st.secrets[key])}")
-
     # API 키 및 이메일 설정
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
@@ -201,12 +196,6 @@ def main():
         "SMTP_SERVER": "smtp.gmail.com",
         "SMTP_PORT": 587
     }
-
-    # 이메일 기능 사용 가능 여부 확인
-    EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
-
-    st.write(f"Email enabled: {EMAIL_ENABLED}")
-    st.write(f"Sender email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
 
     col1, col2 = st.columns(2)
     
