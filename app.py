@@ -93,6 +93,32 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
+# 새로운 이메일 전송 함수
+def send_email(recipient_email, image_data, style):
+    sender_email = st.secrets["SENDER_EMAIL"]
+    sender_password = st.secrets["SENDER_PASSWORD"]
+    
+    msg = MIMEMultipart()
+    msg['Subject'] = f'Your {style} Game Character'
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+
+    text = MIMEText(f"Here's your generated {style} game character!")
+    msg.attach(text)
+
+    image = MIMEImage(image_data, name="game_character.png")
+    msg.attach(image)
+
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        st.error(f"이메일 전송 중 오류가 발생했습니다: {str(e)}")
+        return False
+
 def process_image(image_data, style, result_column):
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
@@ -117,6 +143,14 @@ def process_image(image_data, style, result_column):
                     with result_column:
                         st.write(f"🎉 완성된 {style} 게임 캐릭터:")
                         st.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+                        
+                        # 이메일 전송 옵션 추가
+                        recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
+                        if st.button("이메일로 전송") and recipient_email:
+                            if send_email(recipient_email, final_image, style):
+                                st.success("이메일이 성공적으로 전송되었습니다!")
+                            else:
+                                st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
                 
                 finally:
                     if delete_image_from_imgbb(delete_url):
@@ -128,6 +162,7 @@ def process_image(image_data, style, result_column):
             preview_image = Image.open(BytesIO(image_data))
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
+
             
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
