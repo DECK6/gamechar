@@ -9,22 +9,21 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import asyncio
-import aiomysql
+import os
 
+# Streamlit 버전 출력
+st.write(f"Streamlit version: {st.__version__}")
 
-# 이메일 설정을 위한 전역 변수
-EMAIL_SETTINGS = {
-    "SENDER_EMAIL": st.secrets["SENDER_EMAIL"],
-    "SENDER_PASSWORD": st.secrets["SENDER_PASSWORD"],
-    "SMTP_SERVER": "smtp.gmail.com",
-    "SMTP_PORT": 587
-}
+# 시크릿 디버깅
+st.write("Secrets debug:")
+for key in st.secrets.keys():
+    st.write(f"- {key}: {'*' * len(st.secrets[key])}")
 
-# 디버그 정보 출력 (실제 운영 환경에서는 제거해야 합니다)
-st.write(f"Sender Email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
-st.write(f"Sender Password: {'*' * len(EMAIL_SETTINGS['SENDER_PASSWORD'])}")
+# 환경 변수를 통한 시크릿 접근 시도
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL") or st.secrets.get("SENDER_EMAIL")
+SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD") or st.secrets.get("SENDER_PASSWORD")
 
-# Streamlit secrets에서 API 키 가져오기
+# OpenAI API 키 설정
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 
@@ -35,6 +34,19 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
 
+# 이메일 설정
+EMAIL_SETTINGS = {
+    "SENDER_EMAIL": SENDER_EMAIL,
+    "SENDER_PASSWORD": SENDER_PASSWORD,
+    "SMTP_SERVER": "smtp.gmail.com",
+    "SMTP_PORT": 587
+}
+
+# 이메일 기능 사용 가능 여부 확인
+EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
+
+st.write(f"Email enabled: {EMAIL_ENABLED}")
+st.write(f"Sender email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
 
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
@@ -88,29 +100,20 @@ def generate_game_character(prompt, style):
     return image_url
 
 def add_logo_to_image(image_url, logo_url):
-    # 생성된 이미지 다운로드
     response = requests.get(image_url)
     img = Image.open(BytesIO(response.content))
-
-    # 로고 다운로드
     logo_response = requests.get(logo_url)
     logo = Image.open(BytesIO(logo_response.content))
-
-    # 로고에 알파 채널이 없다면 추가
     if logo.mode != 'RGBA':
         logo = logo.convert('RGBA')
-
-    # 이미지에 로고 추가 (로고 크기 조정 없이)
     img.paste(logo, (10, 10), logo)
-
-    # 처리된 이미지를 BytesIO 객체로 변환
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
 async def send_email_async(recipient_email, image_data, style):
-    if not EMAIL_SETTINGS["SENDER_EMAIL"] or not EMAIL_SETTINGS["SENDER_PASSWORD"]:
-        st.error("이메일 설정이 완료되지 않았습니다. 관리자에게 문의하세요.")
+    if not EMAIL_ENABLED:
+        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
         return False
 
     msg = MIMEMultipart()
@@ -184,55 +187,49 @@ def process_image(image_data, style, result_column):
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
-            recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
-            if st.button("이메일로 전송"):
-                if recipient_email:
-                    if not EMAIL_SETTINGS["SENDER_EMAIL"] or not EMAIL_SETTINGS["SENDER_PASSWORD"]:
-                        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
-                    else:
+            if EMAIL_ENABLED:
+                recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
+                if st.button("이메일로 전송"):
+                    if recipient_email:
                         with st.spinner("이메일을 전송 중입니다..."):
                             image_bytes = BytesIO()
                             Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
                             image_bytes = image_bytes.getvalue()
                             
                             st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
-                else:
-                    st.warning("이메일 주소를 입력해주세요.")
-            
-            if st.session_state.email_sent is not None:
-                if st.session_state.email_sent:
-                    st.success("이메일이 성공적으로 전송되었습니다!")
-                else:
-                    st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
-                st.session_state.email_sent = None
-            
+                    else:
+                        st.warning("이메일 주소를 입력해주세요.")
+                
+                if st.session_state.email_sent is not None:
+                    if st.session_state.email_sent:
+                        st.success("이메일이 성공적으로 전송되었습니다!")
+                    else:
+                        st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
+                    st.session_state.email_sent = None
+            else:
+                st.info("이메일 전송 기능은 현재 사용할 수 없습니다.")
+
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
     
     st.image(HEADER_URL, use_column_width=True)
     
-    #st.title("🖼️ 사진으로 게임 캐릭터 만들기")
-    
     col1, col2 = st.columns(2)
     
     with col1:
+        st.markdown("""
+        <style>
+        .stRadio > label {
+            display: flex;
+            flex-direction: row;
+        }
+        .stRadio div {
+            display: flex;
+            flex-direction: row;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
-# CSS to horizontally align the radio buttons
-        st.markdown(
-            """
-            <style>
-            .stRadio > label {
-                display: flex;
-                flex-direction: row;
-            }
-            .stRadio div {
-                display: flex;
-                flex-direction: row;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
         st.markdown("""
         안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
         사용 방법은 아주 간단해요:
