@@ -68,15 +68,22 @@ def generate_game_character(prompt, style):
     return image_url
 
 def add_logo_to_image(image_url, logo_url):
+    # 생성된 이미지 다운로드
     response = requests.get(image_url)
     img = Image.open(BytesIO(response.content))
+
+    # 로고 다운로드
     logo_response = requests.get(logo_url)
     logo = Image.open(BytesIO(logo_response.content))
-    logo_size = int(img.width * 0.2)
-    logo = logo.resize((logo_size, logo_size))
+
+    # 로고에 알파 채널이 없다면 추가
     if logo.mode != 'RGBA':
         logo = logo.convert('RGBA')
+
+    # 이미지에 로고 추가 (로고 크기 조정 없이)
     img.paste(logo, (10, 10), logo)
+
+    # 처리된 이미지를 BytesIO 객체로 변환
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     return buffered.getvalue()
@@ -116,13 +123,13 @@ def process_image(image_data, style, result_column):
             preview_image = Image.open(BytesIO(image_data))
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
-
+            
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
     
     st.image(HEADER_URL, use_column_width=True)
     
-    st.title("🖼️ 사진으로 게임 캐릭터 만들기")
+    #st.title("🖼️ 사진으로 게임 캐릭터 만들기")
     
     col1, col2 = st.columns(2)
     
