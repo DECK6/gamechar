@@ -177,8 +177,7 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
 def main():
     st.image(HEADER_URL, use_column_width=True)
     
-    # Streamlit 버전 출력
-    st.write(f"Streamlit version: {st.__version__}")
+
 
     # API 키 및 이메일 설정
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
