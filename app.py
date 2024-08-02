@@ -52,9 +52,9 @@ def analyze_image(image_url):
 
 def generate_game_character(prompt, style):
     style_prompts = {
-        "도트그래픽(고전게임, 메이플스토리 st.)": "2D pixel art retro game character potrait, showing character potrait only, not character chart",
-        "2D 일러스트(애니메이션 st.)": "2D illustrated game character portrait, showing character potrait only, not character chart, anime style",
-        "3D 게임 캐릭터": "3D rendered game character model, showing character potrait only, not character chart, unreal engine, cute Super deformed 3D"
+        "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of 2D pixel art retro game character, showing character potrait only, not character chart",
+        "2D 일러스트(애니메이션 st.)": "potrait of 2D illustrated anime character, showing character potrait only, not character chart, anime style",
+        "3D 게임 캐릭터": "potrait of Super deformed 3D rendered game character model, showing character potrait only, not character chart"
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
