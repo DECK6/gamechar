@@ -50,7 +50,7 @@ def generate_game_character(prompt, style):
     style_prompts = {
         "도트그래픽": "2D pixel art retro game character potrait, showing character potrait only, not character chart",
         "일러스트": "2D illustrated game character portrait, showing character potrait only, not character chart, anime style",
-        "3D 게임 캐릭터": "3D rendered game character model, showing character potrait only, not character chart, unreal engine, realistic style"
+        "3D 게임 캐릭터": "3D rendered game character model, showing character potrait only, not character chart, unreal engine, cute Super deformed 3D"
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
@@ -104,7 +104,7 @@ def main():
         4. 마법처럼 변신한 캐릭터를 확인하세요!
         """)
         
-        style = st.radio("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽", "일러스트", "3D 게임 캐릭터"])
+        style = st.radio("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽(고전게임, 메이플스토리 st.)", "2D 일러스트(애니메이션 st.)", "3D 게임 캐릭터"])
         
         # 파일 업로드 옵션 주석 처리
         # image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
