@@ -8,6 +8,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+import asyncio
+import aiomysql
+
 
 # Streamlit secrets에서 API 키 가져오기
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -93,7 +96,7 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-def send_email(recipient_email, image_data, style):
+async def send_email_async(recipient_email, image_data, style):
     sender_email = st.secrets["SENDER_EMAIL"]
     sender_password = st.secrets["SENDER_PASSWORD"]
     
@@ -110,10 +113,11 @@ def send_email(recipient_email, image_data, style):
     msg.attach(image)
 
     try:
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        await asyncio.to_thread(server.starttls)
+        await asyncio.to_thread(server.login, sender_email, sender_password)
+        await asyncio.to_thread(server.send_message, msg)
+        server.quit()
         return True
     except Exception as e:
         st.error(f"이메일 전송 중 오류가 발생했습니다: {str(e)}")
@@ -121,7 +125,9 @@ def send_email(recipient_email, image_data, style):
 
 def process_image(image_data, style, result_column):
     if 'email_sent' not in st.session_state:
-        st.session_state.email_sent = False
+        st.session_state.email_sent = None
+    if 'final_image' not in st.session_state:
+        st.session_state.final_image = None
 
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
@@ -140,27 +146,9 @@ def process_image(image_data, style, result_column):
                         game_character_url = generate_game_character(description, style)
                     
                     with st.spinner("로고를 추가하고 있어요..."):
-                        final_image = add_logo_to_image(game_character_url, LOGO_URL)
+                        st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
                     
-                    with result_column:
-                        st.write(f"🎉 완성된 {style} 게임 캐릭터:")
-                        st.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
-                        
-                        recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
-                        if st.button("이메일로 전송"):
-                            if recipient_email:
-                                image_bytes = BytesIO()
-                                Image.open(BytesIO(final_image)).save(image_bytes, format='PNG')
-                                image_bytes = image_bytes.getvalue()
-                                
-                                st.session_state.email_sent = send_email(recipient_email, image_bytes, style)
-                                st.experimental_rerun()
-                            else:
-                                st.warning("이메일 주소를 입력해주세요.")
-                        
-                        if st.session_state.email_sent:
-                            st.success("이메일이 성공적으로 전송되었습니다!")
-                            st.session_state.email_sent = False
+                    st.experimental_rerun()
                 
                 finally:
                     if delete_image_from_imgbb(delete_url):
@@ -172,6 +160,30 @@ def process_image(image_data, style, result_column):
             preview_image = Image.open(BytesIO(image_data))
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
+
+    if st.session_state.final_image is not None:
+        with result_column:
+            st.write(f"🎉 완성된 {style} 게임 캐릭터:")
+            st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+            
+            recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
+            if st.button("이메일로 전송"):
+                if recipient_email:
+                    with st.spinner("이메일을 전송 중입니다..."):
+                        image_bytes = BytesIO()
+                        Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
+                        image_bytes = image_bytes.getvalue()
+                        
+                        st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
+                else:
+                    st.warning("이메일 주소를 입력해주세요.")
+            
+            if st.session_state.email_sent is not None:
+                if st.session_state.email_sent:
+                    st.success("이메일이 성공적으로 전송되었습니다!")
+                else:
+                    st.error("이메일 전송에 실패했습니다. 다시 시도해주세요.")
+                st.session_state.email_sent = None
             
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
