@@ -11,17 +11,33 @@ from email.mime.image import MIMEImage
 import asyncio
 import os
 
-# 페이지 설정을 스크립트 최상단으로 이동
-st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
+# 환경 변수를 통한 시크릿 접근 시도
+SENDER_EMAIL = "deck6ix@gmail.com"
+SENDER_PASSWORD = "cxhl qokn buiq qrqy"
+
+# OpenAI API 키 설정
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
+
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
 
-def upload_image_to_imgbb(image_data, api_key):
+# 이메일 설정
+EMAIL_SETTINGS = {
+    "SENDER_EMAIL": SENDER_EMAIL,
+    "SENDER_PASSWORD": SENDER_PASSWORD,
+    "SMTP_SERVER": "smtp.gmail.com",
+    "SMTP_PORT": 587
+}
+
+def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
     payload = {
-        "key": api_key,
+        "key": IMGBB_API_KEY,
         "image": base64.b64encode(image_data).decode("utf-8"),
     }
     response = requests.post(url, payload)
@@ -31,9 +47,9 @@ def delete_image_from_imgbb(delete_url):
     response = requests.get(delete_url)
     return response.status_code == 200
 
-def analyze_image(image_url, client):
+def analyze_image(image_url):
     response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
+        model="gpt-4o",
         messages=[
             {
                 "role": "user",
@@ -52,7 +68,7 @@ def analyze_image(image_url, client):
     )
     return response.choices[0].message.content
 
-def generate_game_character(prompt, style, client):
+def generate_game_character(prompt, style):
     style_prompts = {
         "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of Super deformed 2D pixel art retro game character. showing character potrait only. not showing character chart, color pallet, inventory or someting.",
         "2D 일러스트(애니메이션 st.)": "potrait of 2D illustrated anime character. showing character potrait only. not showing character chart, color pallet, inventory or someting. anime style",
@@ -66,7 +82,8 @@ def generate_game_character(prompt, style, client):
         quality="standard",
         n=1,
     )
-    return response.data[0].url
+    image_url = response.data[0].url
+    return image_url
 
 def add_logo_to_image(image_url, logo_url):
     response = requests.get(image_url)
@@ -80,10 +97,14 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-async def send_email_async(recipient_email, image_data, style, email_settings):
+async def send_email_async(recipient_email, image_data, style):
+    if not EMAIL_ENABLED:
+        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
+        return False
+
     msg = MIMEMultipart()
     msg['Subject'] = f'Your {style} Game Character'
-    msg['From'] = email_settings["SENDER_EMAIL"]
+    msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
     text = MIMEText(f"Here's your generated {style} game character!")
@@ -94,9 +115,9 @@ async def send_email_async(recipient_email, image_data, style, email_settings):
     msg.attach(image)
 
     try:
-        server = smtplib.SMTP(email_settings["SMTP_SERVER"], email_settings["SMTP_PORT"])
+        server = smtplib.SMTP(EMAIL_SETTINGS["SMTP_SERVER"], EMAIL_SETTINGS["SMTP_PORT"])
         await asyncio.to_thread(server.starttls)
-        await asyncio.to_thread(server.login, email_settings["SENDER_EMAIL"], email_settings["SENDER_PASSWORD"])
+        await asyncio.to_thread(server.login, EMAIL_SETTINGS["SENDER_EMAIL"], EMAIL_SETTINGS["SENDER_PASSWORD"])
         await asyncio.to_thread(server.send_message, msg)
         server.quit()
         return True
@@ -104,7 +125,7 @@ async def send_email_async(recipient_email, image_data, style, email_settings):
         st.error(f"이메일 전송 중 오류가 발생했습니다: {str(e)}")
         return False
 
-def process_image(image_data, style, result_column, client, imgbb_api_key, email_settings):
+def process_image(image_data, style, result_column):
     if 'email_sent' not in st.session_state:
         st.session_state.email_sent = None
     if 'final_image' not in st.session_state:
@@ -112,7 +133,7 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
     if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
 
-    upload_response = upload_image_to_imgbb(image_data, imgbb_api_key)
+    upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
         image_url = upload_response["data"]["url"]
         delete_url = upload_response["data"]["delete_url"]
@@ -125,10 +146,10 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
                 if not st.session_state.processing_complete:
                     try:
                         with st.spinner("이미지를 분석하고 있어요..."):
-                            description = analyze_image(image_url, client)
+                            description = analyze_image(image_url)
                         
                         with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
-                            game_character_url = generate_game_character(description, style, client)
+                            game_character_url = generate_game_character(description, style)
                         
                         with st.spinner("로고를 추가하고 있어요..."):
                             st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
@@ -152,7 +173,7 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
-            if email_settings["SENDER_EMAIL"] and email_settings["SENDER_PASSWORD"]:
+            if EMAIL_ENABLED:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
                 if st.button("이메일로 전송"):
                     if recipient_email:
@@ -161,7 +182,7 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
                             Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
                             image_bytes = image_bytes.getvalue()
                             
-                            st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style, email_settings))
+                            st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
                     else:
                         st.warning("이메일 주소를 입력해주세요.")
                 
@@ -175,27 +196,10 @@ def process_image(image_data, style, result_column, client, imgbb_api_key, email
                 st.info("이메일 전송 기능은 현재 사용할 수 없습니다.")
 
 def main():
+    st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
+    
     st.image(HEADER_URL, use_column_width=True)
     
-
-
-    # API 키 및 이메일 설정
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-    IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
-    SENDER_EMAIL = "deck6ix@gmail.com"
-    SENDER_PASSWORD = "cxhl qokn buiq qrqy"
-
-    # OpenAI 클라이언트 초기화
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-    # 이메일 설정
-    EMAIL_SETTINGS = {
-        "SENDER_EMAIL": SENDER_EMAIL,
-        "SENDER_PASSWORD": SENDER_PASSWORD,
-        "SMTP_SERVER": "smtp.gmail.com",
-        "SMTP_PORT": 587
-    }
-
     col1, col2 = st.columns(2)
     
     with col1:
@@ -233,12 +237,12 @@ def main():
             uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
                 image_data = uploaded_file.getvalue()
-                process_image(image_data, style, col2, client, IMGBB_API_KEY, EMAIL_SETTINGS)
+                process_image(image_data, style, col2)
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 image_data = camera_image.getvalue()
-                process_image(image_data, style, col2, client, IMGBB_API_KEY, EMAIL_SETTINGS)
+                process_image(image_data, style, col2)
     
     with col2:
         st.markdown("""
