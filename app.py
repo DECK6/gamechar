@@ -12,6 +12,10 @@ IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# 로고 및 헤더 URL
+LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
+HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
+
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
     payload = {
@@ -48,8 +52,8 @@ def analyze_image(image_url):
 
 def generate_game_character(prompt, style):
     style_prompts = {
-        "도트그래픽": "2D pixel art retro game character potrait, showing character potrait only, not character chart",
-        "일러스트": "2D illustrated game character portrait, showing character potrait only, not character chart, anime style",
+        "도트그래픽(고전게임, 메이플스토리 st.": "2D pixel art retro game character potrait, showing character potrait only, not character chart",
+        "2D 일러스트(애니메이션 st.)": "2D illustrated game character portrait, showing character potrait only, not character chart, anime style",
         "3D 게임 캐릭터": "3D rendered game character model, showing character potrait only, not character chart, unreal engine, cute Super deformed 3D"
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
@@ -63,13 +67,38 @@ def generate_game_character(prompt, style):
     image_url = response.data[0].url
     return image_url
 
+def add_logo_to_image(image_url, logo_url):
+    # 생성된 이미지 다운로드
+    response = requests.get(image_url)
+    img = Image.open(BytesIO(response.content))
+
+    # 로고 다운로드
+    logo_response = requests.get(logo_url)
+    logo = Image.open(BytesIO(logo_response.content))
+
+    # 로고 크기 조정 (예: 이미지 너비의 20%)
+    logo_size = int(img.width * 0.2)
+    logo = logo.resize((logo_size, logo_size))
+
+    # 로고에 알파 채널이 없다면 추가
+    if logo.mode != 'RGBA':
+        logo = logo.convert('RGBA')
+
+    # 이미지에 로고 추가
+    img.paste(logo, (10, 10), logo)
+
+    # 처리된 이미지를 BytesIO 객체로 변환
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    return buffered.getvalue()
+
 def process_image(image_data, style, result_placeholder):
     upload_response = upload_image_to_imgbb(image_data)
     if upload_response["success"]:
         image_url = upload_response["data"]["url"]
         delete_url = upload_response["data"]["delete_url"]
         
-        result_placeholder.image(image_url, caption="찍은 사진", use_column_width=True)
+        result_placeholder.image(image_url, caption="입력된 이미지", use_column_width=True)
         
         if result_placeholder.button("게임 캐릭터 만들기"):
             try:
@@ -79,8 +108,12 @@ def process_image(image_data, style, result_placeholder):
                 with result_placeholder.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
                     game_character_url = generate_game_character(description, style)
                 
+                # 로고 추가
+                with result_placeholder.spinner("로고를 추가하고 있어요..."):
+                    final_image = add_logo_to_image(game_character_url, LOGO_URL)
+                
                 result_placeholder.write(f"🎉 완성된 {style} 게임 캐릭터:")
-                result_placeholder.image(game_character_url, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+                result_placeholder.image(final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
             finally:
                 if delete_image_from_imgbb(delete_url):
@@ -90,6 +123,10 @@ def process_image(image_data, style, result_placeholder):
 
 def main():
     st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
+    
+    # 헤더 이미지 추가
+    st.image(HEADER_URL, use_column_width=True)
+    
     st.title("🖼️ 사진으로 게임 캐릭터 만들기")
     
     col1, col2 = st.columns(2)
@@ -99,26 +136,25 @@ def main():
         안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
         사용 방법은 아주 간단해요:
         1. 원하는 캐릭터 스타일을 선택해주세요.
-        2. 카메라로 사진을 찍어주세요.
+        2. 사진을 올리거나 카메라로 찍어주세요.
         3. '게임 캐릭터 만들기' 버튼을 눌러주세요.
         4. 마법처럼 변신한 캐릭터를 확인하세요!
         """)
         
         style = st.radio("원하는 캐릭터 스타일을 선택하세요:", ["도트그래픽(고전게임, 메이플스토리 st.)", "2D 일러스트(애니메이션 st.)", "3D 게임 캐릭터"])
         
-        # 파일 업로드 옵션 주석 처리
-        # image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
+        image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
         
-        # if image_source == "파일 업로드":
-        #     uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
-        #     if uploaded_file is not None:
-        #         image_data = uploaded_file.getvalue()
-        #         process_image(image_data, style, col2)
-        # else:
-        camera_image = st.camera_input("사진을 찍어주세요")
-        if camera_image is not None:
-            image_data = camera_image.getvalue()
-            process_image(image_data, style, col2)
+        if image_source == "파일 업로드":
+            uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
+            if uploaded_file is not None:
+                image_data = uploaded_file.getvalue()
+                process_image(image_data, style, col2)
+        else:
+            camera_image = st.camera_input("사진을 찍어주세요")
+            if camera_image is not None:
+                image_data = camera_image.getvalue()
+                process_image(image_data, style, col2)
     
     with col2:
         st.markdown("""
