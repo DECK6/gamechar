@@ -16,6 +16,23 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
 
+# CSS to horizontally align the radio buttons
+st.markdown(
+    """
+    <style>
+    .stRadio > label {
+        display: flex;
+        flex-direction: row;
+    }
+    .stRadio div {
+        display: flex;
+        flex-direction: row;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
     payload = {
