@@ -179,7 +179,7 @@ def process_image(image_data, style, result_column):
             preview_image.thumbnail((300, 300))
             st.image(preview_image, caption="입력된 이미지", use_column_width=False)
 
-      if st.session_state.processing_complete and st.session_state.final_image is not None:
+    if st.session_state.processing_complete and st.session_state.final_image is not None:
         with result_column:
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
