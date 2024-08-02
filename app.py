@@ -4,6 +4,10 @@ import base64
 from openai import OpenAI
 from PIL import Image
 from io import BytesIO
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
 # Streamlit secrets에서 API 키 가져오기
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
