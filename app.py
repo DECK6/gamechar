@@ -12,6 +12,14 @@ import asyncio
 import aiomysql
 
 
+# 이메일 설정을 위한 전역 변수
+EMAIL_SETTINGS = {
+    "SENDER_EMAIL": st.secrets.get("SENDER_EMAIL", ""),
+    "SENDER_PASSWORD": st.secrets.get("SENDER_PASSWORD", ""),
+    "SMTP_SERVER": "smtp.gmail.com",
+    "SMTP_PORT": 587
+}
+
 # Streamlit secrets에서 API 키 가져오기
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
