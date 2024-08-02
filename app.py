@@ -11,47 +11,17 @@ from email.mime.image import MIMEImage
 import asyncio
 import os
 
-# Streamlit 버전 출력
-st.write(f"Streamlit version: {st.__version__}")
-
-# 시크릿 디버깅
-st.write("Secrets debug:")
-for key in st.secrets.keys():
-    st.write(f"- {key}: {'*' * len(st.secrets[key])}")
-
-# 환경 변수를 통한 시크릿 접근 시도
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL") or st.secrets.get("SENDER_EMAIL")
-SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD") or st.secrets.get("SENDER_PASSWORD")
-
-# OpenAI API 키 설정
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
-
-# OpenAI 클라이언트 초기화
-client = OpenAI(api_key=OPENAI_API_KEY)
+# 페이지 설정을 스크립트 최상단으로 이동
+st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
 
-# 이메일 설정
-EMAIL_SETTINGS = {
-    "SENDER_EMAIL": SENDER_EMAIL,
-    "SENDER_PASSWORD": SENDER_PASSWORD,
-    "SMTP_SERVER": "smtp.gmail.com",
-    "SMTP_PORT": 587
-}
-
-# 이메일 기능 사용 가능 여부 확인
-EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
-
-st.write(f"Email enabled: {EMAIL_ENABLED}")
-st.write(f"Sender email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
-
-def upload_image_to_imgbb(image_data):
+def upload_image_to_imgbb(image_data, api_key):
     url = "https://api.imgbb.com/1/upload"
     payload = {
-        "key": IMGBB_API_KEY,
+        "key": api_key,
         "image": base64.b64encode(image_data).decode("utf-8"),
     }
     response = requests.post(url, payload)
@@ -61,9 +31,9 @@ def delete_image_from_imgbb(delete_url):
     response = requests.get(delete_url)
     return response.status_code == 200
 
-def analyze_image(image_url):
+def analyze_image(image_url, client):
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4-vision-preview",
         messages=[
             {
                 "role": "user",
@@ -82,7 +52,7 @@ def analyze_image(image_url):
     )
     return response.choices[0].message.content
 
-def generate_game_character(prompt, style):
+def generate_game_character(prompt, style, client):
     style_prompts = {
         "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of Super deformed 2D pixel art retro game character. showing character potrait only. not showing character chart, color pallet, inventory or someting.",
         "2D 일러스트(애니메이션 st.)": "potrait of 2D illustrated anime character. showing character potrait only. not showing character chart, color pallet, inventory or someting. anime style",
@@ -96,8 +66,7 @@ def generate_game_character(prompt, style):
         quality="standard",
         n=1,
     )
-    image_url = response.data[0].url
-    return image_url
+    return response.data[0].url
 
 def add_logo_to_image(image_url, logo_url):
     response = requests.get(image_url)
@@ -111,14 +80,10 @@ def add_logo_to_image(image_url, logo_url):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-async def send_email_async(recipient_email, image_data, style):
-    if not EMAIL_ENABLED:
-        st.error("이메일 전송 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.")
-        return False
-
+async def send_email_async(recipient_email, image_data, style, email_settings):
     msg = MIMEMultipart()
     msg['Subject'] = f'Your {style} Game Character'
-    msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
+    msg['From'] = email_settings["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
     text = MIMEText(f"Here's your generated {style} game character!")
@@ -129,9 +94,9 @@ async def send_email_async(recipient_email, image_data, style):
     msg.attach(image)
 
     try:
-        server = smtplib.SMTP(EMAIL_SETTINGS["SMTP_SERVER"], EMAIL_SETTINGS["SMTP_PORT"])
+        server = smtplib.SMTP(email_settings["SMTP_SERVER"], email_settings["SMTP_PORT"])
         await asyncio.to_thread(server.starttls)
-        await asyncio.to_thread(server.login, EMAIL_SETTINGS["SENDER_EMAIL"], EMAIL_SETTINGS["SENDER_PASSWORD"])
+        await asyncio.to_thread(server.login, email_settings["SENDER_EMAIL"], email_settings["SENDER_PASSWORD"])
         await asyncio.to_thread(server.send_message, msg)
         server.quit()
         return True
@@ -139,7 +104,7 @@ async def send_email_async(recipient_email, image_data, style):
         st.error(f"이메일 전송 중 오류가 발생했습니다: {str(e)}")
         return False
 
-def process_image(image_data, style, result_column):
+def process_image(image_data, style, result_column, client, imgbb_api_key, email_settings):
     if 'email_sent' not in st.session_state:
         st.session_state.email_sent = None
     if 'final_image' not in st.session_state:
@@ -147,7 +112,7 @@ def process_image(image_data, style, result_column):
     if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
 
-    upload_response = upload_image_to_imgbb(image_data)
+    upload_response = upload_image_to_imgbb(image_data, imgbb_api_key)
     if upload_response["success"]:
         image_url = upload_response["data"]["url"]
         delete_url = upload_response["data"]["delete_url"]
@@ -160,10 +125,10 @@ def process_image(image_data, style, result_column):
                 if not st.session_state.processing_complete:
                     try:
                         with st.spinner("이미지를 분석하고 있어요..."):
-                            description = analyze_image(image_url)
+                            description = analyze_image(image_url, client)
                         
                         with st.spinner(f"{style} 스타일의 게임 캐릭터를 그리고 있어요..."):
-                            game_character_url = generate_game_character(description, style)
+                            game_character_url = generate_game_character(description, style, client)
                         
                         with st.spinner("로고를 추가하고 있어요..."):
                             st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
@@ -187,7 +152,7 @@ def process_image(image_data, style, result_column):
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
-            if EMAIL_ENABLED:
+            if email_settings["SENDER_EMAIL"] and email_settings["SENDER_PASSWORD"]:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
                 if st.button("이메일로 전송"):
                     if recipient_email:
@@ -196,7 +161,7 @@ def process_image(image_data, style, result_column):
                             Image.open(BytesIO(st.session_state.final_image)).save(image_bytes, format='PNG')
                             image_bytes = image_bytes.getvalue()
                             
-                            st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style))
+                            st.session_state.email_sent = asyncio.run(send_email_async(recipient_email, image_bytes, style, email_settings))
                     else:
                         st.warning("이메일 주소를 입력해주세요.")
                 
@@ -210,10 +175,39 @@ def process_image(image_data, style, result_column):
                 st.info("이메일 전송 기능은 현재 사용할 수 없습니다.")
 
 def main():
-    st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
-    
     st.image(HEADER_URL, use_column_width=True)
     
+    # Streamlit 버전 출력
+    st.write(f"Streamlit version: {st.__version__}")
+
+    # 시크릿 디버깅
+    st.write("Secrets debug:")
+    for key in st.secrets.keys():
+        st.write(f"- {key}: {'*' * len(st.secrets[key])}")
+
+    # API 키 및 이메일 설정
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+    IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
+    SENDER_EMAIL = os.environ.get("SENDER_EMAIL") or st.secrets.get("SENDER_EMAIL")
+    SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD") or st.secrets.get("SENDER_PASSWORD")
+
+    # OpenAI 클라이언트 초기화
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
+    # 이메일 설정
+    EMAIL_SETTINGS = {
+        "SENDER_EMAIL": SENDER_EMAIL,
+        "SENDER_PASSWORD": SENDER_PASSWORD,
+        "SMTP_SERVER": "smtp.gmail.com",
+        "SMTP_PORT": 587
+    }
+
+    # 이메일 기능 사용 가능 여부 확인
+    EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
+
+    st.write(f"Email enabled: {EMAIL_ENABLED}")
+    st.write(f"Sender email: {EMAIL_SETTINGS['SENDER_EMAIL']}")
+
     col1, col2 = st.columns(2)
     
     with col1:
@@ -251,12 +245,12 @@ def main():
             uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
                 image_data = uploaded_file.getvalue()
-                process_image(image_data, style, col2)
+                process_image(image_data, style, col2, client, IMGBB_API_KEY, EMAIL_SETTINGS)
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 image_data = camera_image.getvalue()
-                process_image(image_data, style, col2)
+                process_image(image_data, style, col2, client, IMGBB_API_KEY, EMAIL_SETTINGS)
     
     with col2:
         st.markdown("""
