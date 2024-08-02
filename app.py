@@ -19,12 +19,16 @@ SENDER_PASSWORD = "cxhl qokn buiq qrqy"
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 
+
+
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
+
+
 
 # 이메일 설정
 EMAIL_SETTINGS = {
@@ -33,6 +37,10 @@ EMAIL_SETTINGS = {
     "SMTP_SERVER": "smtp.gmail.com",
     "SMTP_PORT": 587
 }
+
+# 이메일 기능 사용 가능 여부 확인
+EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
+
 
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
