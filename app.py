@@ -16,22 +16,6 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
 HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
 
-# CSS to horizontally align the radio buttons
-st.markdown(
-    """
-    <style>
-    .stRadio > label {
-        display: flex;
-        flex-direction: row;
-    }
-    .stRadio div {
-        display: flex;
-        flex-direction: row;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
@@ -151,6 +135,23 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
+        
+# CSS to horizontally align the radio buttons
+        st.markdown(
+            """
+            <style>
+            .stRadio > label {
+                display: flex;
+                flex-direction: row;
+            }
+            .stRadio div {
+                display: flex;
+                flex-direction: row;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
         st.markdown("""
         안녕하세요! 여러분의 사진을 멋진 게임 캐릭터로 바꿔보세요. 
         사용 방법은 아주 간단해요:
