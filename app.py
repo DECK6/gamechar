@@ -188,8 +188,8 @@ def main():
     # API 키 및 이메일 설정
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
-    SENDER_EMAIL = os.environ.get("SENDER_EMAIL") or st.secrets.get("SENDER_EMAIL")
-    SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD") or st.secrets.get("SENDER_PASSWORD")
+    SENDER_EMAIL = st.secrets.get("SENDER_EMAIL")
+    SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD")
 
     # OpenAI 클라이언트 초기화
     client = OpenAI(api_key=OPENAI_API_KEY)
