@@ -189,7 +189,7 @@ def main():
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
     SENDER_EMAIL = "deck6ix@gmail.com"
-    SENDER_PASSWORD = st.secrets.get("EMAIL_PASSWORD")
+    SENDER_PASSWORD = "cxhl qokn buiq qrqy"
 
     # OpenAI 클라이언트 초기화
     client = OpenAI(api_key=OPENAI_API_KEY)
