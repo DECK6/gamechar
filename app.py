@@ -25,7 +25,7 @@ IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
-LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
+LOGO_URL = "https://i.ibb.co/2yF55p2/logo-2.png"
 HEADER_URL = "https://i.ibb.co/NKCxYqy/temp-Image-Bl-Kh-HN.jpg"
 
 
