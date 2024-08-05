@@ -12,8 +12,8 @@ import asyncio
 import os
 
 # 환경 변수를 통한 시크릿 접근 시도
-SENDER_EMAIL = "deck6ix@gmail.com"
-SENDER_PASSWORD = "cxhl qokn buiq qrqy"
+SENDER_EMAIL = "dnmdaia@gmail.com"
+SENDER_PASSWORD = "iudy dgqr fuin lukc"
 
 # OpenAI API 키 설정
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
