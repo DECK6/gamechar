@@ -108,7 +108,7 @@ def add_logo_to_image(image_url, logo_url):
 async def send_email_async(recipient_email, image_data, style):
 
     msg = MIMEMultipart()
-    msg['Subject'] = f'Your {style} Game Character'
+    msg['Subject'] = f'2024 Youth E-Sports Festival에서 제작한 게임 캐릭터가 도착했습니다.'
     msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
