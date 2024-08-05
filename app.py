@@ -26,7 +26,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/blob/main/logo.png?raw=true"
-HEADER_URL = "https://github.com/DECK6/gamechar/blob/main/header.png?raw=true"
+HEADER_URL = "https://i.ibb.co/NKCxYqy/temp-Image-Bl-Kh-HN.jpg"
 
 
 
