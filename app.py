@@ -112,7 +112,7 @@ async def send_email_async(recipient_email, image_data, style):
     msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
-    text = MIMEText(f"Here's your generated {style} game character!")
+    text = MIMEText(f"2024 Youth E-Sports Festival에서 제작한 게임 캐릭터가 도착했습니다.")
     msg.attach(text)
 
     image = MIMEImage(image_data)
