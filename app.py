@@ -78,9 +78,9 @@ def analyze_image(image_url):
 
 def generate_game_character(prompt, style):
     style_prompts = {
-        "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of Super deformed 2D pixel art retro game character. showing character potrait only. not showing character chart, color pallet, inventory or someting.",
-        "2D 일러스트(애니메이션 st.)": "potrait of 2D illustrated anime character. showing character potrait only. not showing character chart, color pallet, inventory or someting. anime style",
-        "3D 게임 캐릭터": "potrait of Super deformed 3D rendered game character like overwatch. showing character potrait only. not showing character chart, color pallet, inventory or someting."
+        "도트그래픽(고전게임, 메이플스토리 st.)": "potrait of Super deformed cute 2D pixel art retro game character. showing character potrait only. not showing character chart, color pallet, inventory or someting.",
+        "2D 일러스트(애니메이션 st.)": "potrait of Super deformed cute 2D illustrated anime character. showing character potrait only. not showing character chart, color pallet, inventory or someting. anime style",
+        "3D 게임 캐릭터": "potrait of Super deformed cute 3D rendered game character like overwatch. showing character potrait only. not showing character chart, color pallet, inventory or someting."
     }
     full_prompt = f"{style_prompts[style]}, {prompt}"
     response = client.images.generate(
