@@ -26,7 +26,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://i.ibb.co/2yF55p2/logo-2.png"
-HEADER_URL = "https://i.ibb.co/NKCxYqy/temp-Image-Bl-Kh-HN.jpg"
+HEADER_URL = "https://i.ibb.co/fHFM0Wx/temp-Image-Bl-Kh-HN.jpg"
 
 
 
