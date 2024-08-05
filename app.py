@@ -250,10 +250,10 @@ def main():
                 process_image(image_data, style, col2)
     
     with col2:
-        st.markdown("""
-        ### 결과
-        여기에 변환된 게임 캐릭터가 표시됩니다.
-        """)
+#        st.markdown("""
+#        ### 결과
+#        여기에 변환된 게임 캐릭터가 표시됩니다.
+#        """)
         
         st.markdown("""
         ---
