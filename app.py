@@ -41,6 +41,7 @@ EMAIL_SETTINGS = {
 # 이메일 기능 사용 가능 여부 확인
 EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_PASSWORD"])
 
+st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
 
 def upload_image_to_imgbb(image_data):
     url = "https://api.imgbb.com/1/upload"
@@ -201,7 +202,6 @@ def process_image(image_data, style, result_column):
                 st.info("이메일 전송 기능은 현재 사용할 수 없습니다.")
 
 def main():
-    st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
     
     st.image(HEADER_URL, use_column_width=True)
     
