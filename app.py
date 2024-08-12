@@ -51,7 +51,7 @@ def upload_image_to_imgbb(image_data):
         "image": base64.b64encode(image_data).decode("utf-8"),
     }
     response = requests.post(url, payload)
-    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
+#    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
     if response.status_code == 200 and response.json().get('success'):
         return response.json()
     else:
