@@ -239,8 +239,8 @@ def initialize_session_state():
         st.session_state.generated_character = None
     if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
-    if 'generate_character' not in st.session_state:
-        st.session_state.generate_character = False
+    if 'generate_button_clicked' not in st.session_state:
+        st.session_state.generate_button_clicked = False
 
 def process_image(style, result_column):
     logger.info("이미지 처리 시작")
@@ -252,39 +252,39 @@ def process_image(style, result_column):
         st.image(preview_image, caption="입력된 이미지", use_column_width=False)
 
     # 캐릭터 생성 버튼
-    if st.button("게임 캐릭터 만들기") or st.session_state.generate_character:
-        st.session_state.generate_character = False
+    if st.session_state.original_image is not None and not st.session_state.processing_complete:
+        if st.button("게임 캐릭터 만들기"):
+            st.session_state.generate_button_clicked = True
+
+    if st.session_state.generate_button_clicked:
         logger.info("게임 캐릭터 생성 시작")
-        
-        if st.session_state.original_image is not None:
-            try:
-                with st.spinner("캐릭터 생성 중..."):
-                    upload_response = upload_image_to_imgbb(st.session_state.original_image)
-                    if upload_response["success"]:
-                        image_url = upload_response["data"]["url"]
-                        delete_url = upload_response["data"]["delete_url"]
-                        
-                        description = analyze_image(image_url)
-                        game_character_url = generate_game_character(description, style)
-                        final_image = add_logo_to_image(game_character_url, LOGO_URL)
-                        
-                        st.session_state.generated_character = final_image
-                        st.session_state.processing_complete = True
-                        
-                        # 원본 이미지 삭제
-                        if delete_image_from_imgbb(delete_url):
-                            logger.info("입력된 이미지 안전하게 삭제")
-                        else:
-                            logger.warning("입력된 이미지 삭제 중 문제 발생")
-                        
-                        # 원본 이미지 상태 초기화
-                        st.session_state.original_image = None
-            except Exception as e:
-                logger.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
-                st.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
-        else:
-            logger.warning("이미지가 업로드되지 않음")
-            st.warning("먼저 이미지를 업로드해주세요.")
+        try:
+            with st.spinner("캐릭터 생성 중..."):
+                upload_response = upload_image_to_imgbb(st.session_state.original_image)
+                if upload_response["success"]:
+                    image_url = upload_response["data"]["url"]
+                    delete_url = upload_response["data"]["delete_url"]
+                    
+                    description = analyze_image(image_url)
+                    game_character_url = generate_game_character(description, style)
+                    final_image = add_logo_to_image(game_character_url, LOGO_URL)
+                    
+                    st.session_state.generated_character = final_image
+                    st.session_state.processing_complete = True
+                    
+                    # 원본 이미지 삭제
+                    if delete_image_from_imgbb(delete_url):
+                        logger.info("입력된 이미지 안전하게 삭제")
+                    else:
+                        logger.warning("입력된 이미지 삭제 중 문제 발생")
+                    
+            # 상태 초기화
+            st.session_state.generate_button_clicked = False
+            st.rerun()
+        except Exception as e:
+            logger.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
+            st.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
+            st.session_state.generate_button_clicked = False
 
     # 생성된 캐릭터 표시
     if st.session_state.processing_complete and st.session_state.generated_character is not None:
@@ -358,15 +358,14 @@ def main():
             uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
                 st.session_state.original_image = uploaded_file.getvalue()
-                st.session_state.generate_character = True
+                st.session_state.processing_complete = False
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 st.session_state.original_image = camera_image.getvalue()
-                st.session_state.generate_character = True
+                st.session_state.processing_complete = False
         
         process_image(style, col2)
-        
     
     with col2:
         st.markdown("""
