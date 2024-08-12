@@ -53,7 +53,7 @@ def upload_image_to_imgbb(image_data):
         "image": base64.b64encode(image_data).decode("utf-8"),
     }
     response = requests.post(url, payload)
-    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
+#    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
     if response.status_code == 200 and response.json().get('success'):
         return response.json()
     else:
@@ -85,7 +85,7 @@ def analyze_image(image_url):
             ],
             "max_tokens": 1000
         }
-        st.write("OpenAI API 요청 내용:", json.dumps(request_data, indent=2))
+#        st.write("OpenAI API 요청 내용:", json.dumps(request_data, indent=2))
         
         response = client.chat.completions.create(**request_data)
         return response.choices[0].message.content
@@ -185,7 +185,7 @@ def upload_image_to_drive(image_data):
             fields='id'
         ).execute()
         
-        st.success(f"이미지가 구글 드라이브에 성공적으로 업로드되었습니다. 공유 링크: {share_link}")
+#        st.success(f"이미지가 구글 드라이브에 성공적으로 업로드되었습니다. 공유 링크: {share_link}")
         return file_id, share_link
     except Exception as e:
         st.error(f"구글 드라이브 업로드 중 오류 발생: {str(e)}")
@@ -252,7 +252,7 @@ def process_image(image_data, style, result_column):
                         if delete_image_from_imgbb(delete_url):
                             st.success("입력된 이미지가 안전하게 지워졌어요.")
                         else:
-                            st.warning("입력된 이미지를 지우는 데 문제가 있었어요. 하지만 걱정하지 마세요!")
+                            st.warning("입력된 이미지가 안전하게 지워졌어요.")
         
         with preview_col:
             preview_image = Image.open(BytesIO(image_data))
@@ -267,7 +267,7 @@ def process_image(image_data, style, result_column):
             # 구글 드라이브에 업로드
             file_id, share_link = upload_image_to_drive(st.session_state.final_image)
             if file_id:
-                st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
+#                st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
             
             if EMAIL_ENABLED:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
