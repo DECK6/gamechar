@@ -266,7 +266,7 @@ def process_image(image_data, style, result_column):
             
             # 구글 드라이브에 업로드
             file_id, share_link = upload_image_to_drive(st.session_state.final_image)
-            if file_id:
+#            if file_id:
 #                st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
             
             if EMAIL_ENABLED:
