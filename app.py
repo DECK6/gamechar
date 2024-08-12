@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import asyncio
 import os
+import urllib.parse
 
 # 환경 변수를 통한 시크릿 접근 시도
 SENDER_EMAIL = "dnmdaia@gmail.com"
@@ -176,7 +177,7 @@ def process_image(image_data, style, result_column):
                             st.session_state.final_image = add_logo_to_image(game_character_url, LOGO_URL)
                         
                         st.session_state.processing_complete = True
-                        st.experimental_rerun()
+                        st.rerun()
                     
                     finally:
                         if delete_image_from_imgbb(delete_url):
