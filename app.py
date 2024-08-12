@@ -239,8 +239,8 @@ def initialize_session_state():
         st.session_state.generated_character = None
     if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
-    if 'generate_button_clicked' not in st.session_state:
-        st.session_state.generate_button_clicked = False
+    if 'processing' not in st.session_state:
+        st.session_state.processing = False
 
 def process_image(style, result_column):
     logger.info("이미지 처리 시작")
@@ -254,10 +254,10 @@ def process_image(style, result_column):
     # 캐릭터 생성 버튼
     if st.session_state.original_image is not None and not st.session_state.processing_complete:
         if st.button("게임 캐릭터 만들기"):
-            st.session_state.generate_button_clicked = True
+            st.session_state.processing = True
 
-    if st.session_state.generate_button_clicked:
-        logger.info("게임 캐릭터 생성 시작")
+    # 캐릭터 생성 프로세스
+    if st.session_state.processing:
         try:
             with st.spinner("캐릭터 생성 중..."):
                 upload_response = upload_image_to_imgbb(st.session_state.original_image)
@@ -277,14 +277,12 @@ def process_image(style, result_column):
                         logger.info("입력된 이미지 안전하게 삭제")
                     else:
                         logger.warning("입력된 이미지 삭제 중 문제 발생")
-                    
-            # 상태 초기화
-            st.session_state.generate_button_clicked = False
-            st.rerun()
+            
+            st.session_state.processing = False
         except Exception as e:
             logger.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
             st.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
-            st.session_state.generate_button_clicked = False
+            st.session_state.processing = False
 
     # 생성된 캐릭터 표시
     if st.session_state.processing_complete and st.session_state.generated_character is not None:
@@ -359,13 +357,16 @@ def main():
             if uploaded_file is not None:
                 st.session_state.original_image = uploaded_file.getvalue()
                 st.session_state.processing_complete = False
+                st.session_state.generated_character = None
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 st.session_state.original_image = camera_image.getvalue()
                 st.session_state.processing_complete = False
+                st.session_state.generated_character = None
         
         process_image(style, col2)
+    
     
     with col2:
         st.markdown("""
