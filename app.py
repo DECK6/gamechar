@@ -62,7 +62,7 @@ def analyze_image(image_data):
             "Authorization": f"Bearer {OPENAI_API_KEY}"
         }
         payload = {
-            "model": "gpt-4o-mini",
+            "model": "gpt-4o",
             "messages": [
                 {
                     "role": "user",
