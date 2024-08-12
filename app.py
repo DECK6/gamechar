@@ -29,7 +29,6 @@ SENDER_PASSWORD = "iudy dgqr fuin lukc"
 
 # OpenAI API 키 설정
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -51,37 +50,19 @@ EMAIL_ENABLED = bool(EMAIL_SETTINGS["SENDER_EMAIL"] and EMAIL_SETTINGS["SENDER_P
 
 st.set_page_config(page_title="사진으로 게임 캐릭터 만들기", page_icon="🎮", layout="wide")
 
-def upload_image_to_imgbb(image_data):
-    logger.info("imgbb 이미지 업로드 시작")
-    url = "https://api.imgbb.com/1/upload"
-    payload = {
-        "key": IMGBB_API_KEY,
-        "image": base64.b64encode(image_data).decode("utf-8"),
-    }
-    response = requests.post(url, payload)
-    logger.debug(f"imgbb 응답: {response.json()}")
-    if response.status_code == 200 and response.json().get('success'):
-        logger.info("imgbb 이미지 업로드 성공")
-        return response.json()
-    else:
-        logger.error(f"imgbb 이미지 업로드 실패: {response.text}")
-        return None
+def encode_image(image_data):
+    return base64.b64encode(image_data).decode('utf-8')
 
-def delete_image_from_imgbb(delete_url):
-    logger.info(f"imgbb 이미지 삭제 시도: {delete_url}")
-    response = requests.get(delete_url)
-    success = response.status_code == 200
-    logger.info(f"imgbb 이미지 삭제 {'성공' if success else '실패'}")
-    return success
-
-def analyze_image(image_url):
-    logger.info(f"이미지 분석 시작: {image_url}")
+def analyze_image(image_data):
+    logger.info("이미지 분석 시작")
     try:
-        encoded_url = urllib.parse.quote(image_url, safe=':/')
-        logger.debug(f"인코딩된 이미지 URL: {encoded_url}")
-        
-        request_data = {
-            "model": "gpt-4o",
+        base64_image = encode_image(image_data)
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+        payload = {
+            "model": "gpt-4o-mini",
             "messages": [
                 {
                     "role": "user",
@@ -90,18 +71,17 @@ def analyze_image(image_url):
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": encoded_url},
-                            "detail": "high"
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
                         }
                     ]
                 }
             ],
             "max_tokens": 1000
         }
-        logger.debug(f"OpenAI API 요청 내용: {json.dumps(request_data, indent=2)}")
-        
-        response = client.chat.completions.create(**request_data)
-        analysis_result = response.choices[0].message.content
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response.raise_for_status()
+        analysis_result = response.json()["choices"][0]["message"]["content"]
         logger.info(f"이미지 분석 완료: {analysis_result[:100]}...")  # 처음 100자만 로그
         return analysis_result
     except Exception as e:
@@ -260,23 +240,15 @@ def process_image(style, result_column):
     if st.session_state.processing:
         try:
             with st.spinner("캐릭터 생성 중..."):
-                upload_response = upload_image_to_imgbb(st.session_state.original_image)
-                if upload_response["success"]:
-                    image_url = upload_response["data"]["url"]
-                    delete_url = upload_response["data"]["delete_url"]
-                    
-                    description = analyze_image(image_url)
+                description = analyze_image(st.session_state.original_image)
+                if description:
                     game_character_url = generate_game_character(description, style)
                     final_image = add_logo_to_image(game_character_url, LOGO_URL)
                     
                     st.session_state.generated_character = final_image
                     st.session_state.processing_complete = True
-                    
-                    # 원본 이미지 삭제
-                    if delete_image_from_imgbb(delete_url):
-                        logger.info("입력된 이미지 안전하게 삭제")
-                    else:
-                        logger.warning("입력된 이미지 삭제 중 문제 발생")
+                else:
+                    st.error("이미지 분석에 실패했습니다.")
             
             st.session_state.processing = False
         except Exception as e:
