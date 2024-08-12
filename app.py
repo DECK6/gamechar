@@ -91,6 +91,7 @@ def analyze_image(image_url):
                             "type": "image_url",
                             "image_url": {
                                 "url": encoded_url
+                            "detail": "high"
                             }
                         }
                     ]
