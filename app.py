@@ -20,8 +20,10 @@ import traceback
 import logging
 
 # 로깅 설정
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# watchdog 로거의 로깅 레벨을 WARNING으로 설정하여 디버그 메시지 제외
+logging.getLogger('watchdog').setLevel(logging.WARNING)
 
 # 환경 변수를 통한 시크릿 접근
 SENDER_EMAIL = "dnmdaia@gmail.com"
