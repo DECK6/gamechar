@@ -10,9 +10,15 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import asyncio
 import os
+import datetime
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import json
 import urllib.parse
+import traceback
 
-# 환경 변수를 통한 시크릿 접근 시도
+# 환경 변수를 통한 시크릿 접근
 SENDER_EMAIL = "dnmdaia@gmail.com"
 SENDER_PASSWORD = "iudy dgqr fuin lukc"
 
@@ -20,16 +26,12 @@ SENDER_PASSWORD = "iudy dgqr fuin lukc"
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 IMGBB_API_KEY = st.secrets["IMGBB_API_KEY"]
 
-
-
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/raw/main/logo.png"
 HEADER_URL = "https://github.com/DECK6/gamechar/raw/main/header.png"
-
-
 
 # 이메일 설정
 EMAIL_SETTINGS = {
@@ -51,7 +53,7 @@ def upload_image_to_imgbb(image_data):
         "image": base64.b64encode(image_data).decode("utf-8"),
     }
     response = requests.post(url, payload)
-#    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
+    st.write("imgbb 응답:", response.json())  # 응답 내용을 로그로 출력
     if response.status_code == 200 and response.json().get('success'):
         return response.json()
     else:
@@ -71,7 +73,7 @@ def analyze_image(image_url):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요..."},
+                        {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 유지한채 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -89,6 +91,8 @@ def analyze_image(image_url):
         return response.choices[0].message.content
     except Exception as e:
         st.error(f"OpenAI API 오류: {str(e)}")
+        st.error(f"오류 타입: {type(e)}")
+        st.error(f"상세 오류 정보:\n{traceback.format_exc()}")
         if hasattr(e, 'response'):
             st.error(f"응답 내용: {e.response.text}")
         return None
@@ -123,7 +127,6 @@ def add_logo_to_image(image_url, logo_url):
     return buffered.getvalue()
 
 async def send_email_async(recipient_email, image_data, style):
-
     msg = MIMEMultipart()
     msg['Subject'] = f'2024 Youth E-Sports Festival에서 제작한 게임 캐릭터가 도착했습니다.'
     msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
@@ -146,6 +149,72 @@ async def send_email_async(recipient_email, image_data, style):
     except Exception as e:
         st.error(f"이메일 전송 중 오류가 발생했습니다: {str(e)}")
         return False
+
+def upload_image_to_drive(image_data):
+    # 인증 정보 로드
+    creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/drive'])
+    # Drive API 클라이언트 생성
+    service = build('drive', 'v3', credentials=creds)
+    
+    # 'image_upload' 폴더 ID 찾기 또는 생성
+    folder_name = 'image_upload'
+    folder_id = find_or_create_folder(service, folder_name)
+    
+    # 임시 파일로 이미지 데이터 저장
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    temp_image_path = f"temp_image_{timestamp}.png"
+    with open(temp_image_path, "wb") as f:
+        f.write(image_data)
+    
+    # 파일 메타데이터 설정
+    file_metadata = {
+        'name': f"generated_image_{timestamp}.png",
+        'parents': [folder_id]
+    }
+    media = MediaFileUpload(temp_image_path, resumable=True)
+    
+    try:
+        file = service.files().create(body=file_metadata, media_body=media, fields='id,webViewLink').execute()
+        file_id = file.get('id')
+        share_link = file.get('webViewLink')
+        
+        # 파일을 공개로 설정 (선택사항)
+        service.permissions().create(
+            fileId=file_id,
+            body={'type': 'anyone', 'role': 'reader'},
+            fields='id'
+        ).execute()
+        
+        st.success(f"이미지가 구글 드라이브에 성공적으로 업로드되었습니다. 공유 링크: {share_link}")
+        return file_id, share_link
+    except Exception as e:
+        st.error(f"구글 드라이브 업로드 중 오류 발생: {str(e)}")
+        return None, None
+    finally:
+        # 임시 파일 삭제
+        if os.path.exists(temp_image_path):
+            os.remove(temp_image_path)
+
+def find_or_create_folder(service, folder_name):
+    # 폴더 검색
+    results = service.files().list(
+        q=f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false",
+        spaces='drive',
+        fields='files(id, name)'
+    ).execute()
+    folders = results.get('files', [])
+    
+    # 폴더가 존재하면 해당 ID 반환
+    if folders:
+        return folders[0]['id']
+    
+    # 폴더가 없으면 새로 생성
+    folder_metadata = {
+        'name': folder_name,
+        'mimeType': 'application/vnd.google-apps.folder'
+    }
+    folder = service.files().create(body=folder_metadata, fields='id').execute()
+    return folder.get('id')
 
 def process_image(image_data, style, result_column):
     if 'email_sent' not in st.session_state:
@@ -194,6 +263,11 @@ def process_image(image_data, style, result_column):
         with result_column:
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.final_image, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
+            
+            # 구글 드라이브에 업로드
+            file_id, share_link = upload_image_to_drive(st.session_state.final_image)
+            if file_id:
+                st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
             
             if EMAIL_ENABLED:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
