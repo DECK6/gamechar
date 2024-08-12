@@ -279,7 +279,7 @@ def process_image(image_data, style, result_column):
                         st.session_state.original_image = None
                         
                         st.rerun()
-             except Exception as e:
+            except Exception as e:
                 logger.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
                 st.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
         else:
