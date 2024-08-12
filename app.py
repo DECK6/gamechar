@@ -234,25 +234,22 @@ def find_or_create_folder(service, folder_name):
 
 def process_image(image_data, style, result_column):
     logger.info("이미지 처리 시작")
-    if 'original_image' not in st.session_state:
-        st.session_state.original_image = None
-    if 'generated_character' not in st.session_state:
+    
+    # 새로운 이미지가 업로드되면 상태 초기화
+    if image_data is not None:
+        st.session_state.original_image = image_data
         st.session_state.generated_character = None
-    if 'processing_complete' not in st.session_state:
         st.session_state.processing_complete = False
 
     # 원본 이미지 표시
-    if image_data and not st.session_state.processing_complete:
-        st.session_state.original_image = image_data
-        preview_image = Image.open(BytesIO(image_data))
+    if st.session_state.original_image:
+        preview_image = Image.open(BytesIO(st.session_state.original_image))
         preview_image.thumbnail((300, 300))
         st.image(preview_image, caption="입력된 이미지", use_column_width=False)
 
     # 캐릭터 생성 버튼
     if st.button("게임 캐릭터 만들기"):
         logger.info("게임 캐릭터 생성 버튼 클릭")
-        st.session_state.processing_complete = False
-        st.session_state.generated_character = None
         
         if st.session_state.original_image:
             try:
@@ -275,9 +272,6 @@ def process_image(image_data, style, result_column):
                         else:
                             logger.warning("입력된 이미지 삭제 중 문제 발생")
                         
-                        # 원본 이미지 상태 초기화
-                        st.session_state.original_image = None
-                        
                         st.rerun()
             except Exception as e:
                 logger.error(f"캐릭터 생성 중 오류 발생: {str(e)}")
@@ -296,7 +290,7 @@ def process_image(image_data, style, result_column):
             file_id, share_link = upload_image_to_drive(st.session_state.generated_character)
             if file_id:
                 st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
-            
+                
             if EMAIL_ENABLED:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
                 if st.button("이메일로 전송"):
@@ -344,7 +338,7 @@ def main():
         4. 마법처럼 변신한 캐릭터를 확인하세요!
         """)
         
-        style = st.radio("원하는 캐릭터 스타일을 선택하세요:", [
+           style = st.radio("원하는 캐릭터 스타일을 선택하세요:", [
             "도트그래픽(고전게임, 메이플스토리 st.)",
             "2D 일러스트(애니메이션 st.)",
             "3D 게임 캐릭터"
@@ -352,16 +346,21 @@ def main():
         
         image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
         
+        uploaded_image = None
+        
         if image_source == "파일 업로드":
             uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
-                image_data = uploaded_file.getvalue()
-                process_image(image_data, style, col2)
+                uploaded_image = uploaded_file.getvalue()
         else:
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
-                image_data = camera_image.getvalue()
-                process_image(image_data, style, col2)
+                uploaded_image = camera_image.getvalue()
+        
+        if uploaded_image:
+            process_image(uploaded_image, style, col2)
+        else:
+            process_image(None, style, col2)
     
     with col2:
         st.markdown("""
