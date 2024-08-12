@@ -350,18 +350,19 @@ def main():
             "3D 게임 캐릭터"
         ])
         
-        image_source = st.radio("이미지 입력 방법을 선택하세요:", ("파일 업로드", "카메라로 찍기"))
+        image_source = st.radio("이미지 입력 방법을 선택하세요:", ("카메라로 찍기","파일 업로드"))
         
-        if image_source == "파일 업로드":
-            uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
-            if uploaded_file is not None:
-                st.session_state.original_image = uploaded_file.getvalue()
-                st.session_state.processing_complete = False
-                st.session_state.generated_character = None
-        else:
+        if image_source == "카메라로 찍기":
             camera_image = st.camera_input("사진을 찍어주세요")
             if camera_image is not None:
                 st.session_state.original_image = camera_image.getvalue()
+                st.session_state.processing_complete = False
+                st.session_state.generated_character = None
+
+        else:
+            uploaded_file = st.file_uploader("사진을 선택해주세요...", type=["jpg", "jpeg", "png"])
+            if uploaded_file is not None:
+                st.session_state.original_image = uploaded_file.getvalue()
                 st.session_state.processing_complete = False
                 st.session_state.generated_character = None
         
