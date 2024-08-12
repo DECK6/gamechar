@@ -62,25 +62,35 @@ def delete_image_from_imgbb(delete_url):
     return response.status_code == 200
 
 def analyze_image(image_url):
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요. 성별, 피부색, 얼굴 형태, 스타일, 색상, 눈에 띄는 특징을 상세히 포착합니다. 이 특징을 유지한채 판타지 세계관에 어울리는 복장과 장식등을 제안합니다. 상반신이 나오는 캐릭터로 특징과 복장 등을 정리하여 영문 이미지 프롬프트 형태로 제공합니다."},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_url
+    try:
+        encoded_url = urllib.parse.quote(image_url, safe=':/')
+        request_data = {
+            "model": "gpt-4o",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "이 이미지 속 인물의 외형적 특성을 분석해주세요..."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": encoded_url
+                            }
                         }
-                    }
-                ]
-            }
-        ],
-        max_tokens=1000
-    )
-    return response.choices[0].message.content
+                    ]
+                }
+            ],
+            "max_tokens": 1000
+        }
+        st.write("OpenAI API 요청 내용:", json.dumps(request_data, indent=2))
+        
+        response = client.chat.completions.create(**request_data)
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"OpenAI API 오류: {str(e)}")
+        if hasattr(e, 'response'):
+            st.error(f"응답 내용: {e.response.text}")
+        return None
 
 def generate_game_character(prompt, style):
     style_prompts = {
