@@ -34,7 +34,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 로고 및 헤더 URL
 LOGO_URL = "https://github.com/DECK6/gamechar/raw/main/logo.png"
-HEADER_URL = "https://github.com/DECK6/gamechar/raw/main/header.png"
+HEADER_URL = "https://github.com/DECK6/gamechar/raw/main/header.jpg"
 
 # 이메일 설정
 EMAIL_SETTINGS = {
