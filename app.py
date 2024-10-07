@@ -128,11 +128,11 @@ def add_logo_to_image(image_url, logo_url):
 async def send_email_async(recipient_email, image_data, style):
     logger.info(f"이메일 전송 시작: {recipient_email}")
     msg = MIMEMultipart()
-    msg['Subject'] = f'2024 Youth E-Sports Festival에서 제작한 게임 캐릭터가 도착했습니다.'
+    msg['Subject'] = f'2024 K-사이언스 월드에서 제작한 캐릭터가 도착했습니다.'
     msg['From'] = EMAIL_SETTINGS["SENDER_EMAIL"]
     msg['To'] = recipient_email
 
-    text = MIMEText(f"2024 Youth E-Sports Festival에서 제작한 게임 캐릭터가 도착했습니다.")
+    text = MIMEText(f"2024 K-사이언스 월드에서 제작한 캐릭터가 도착했습니다.")
     msg.attach(text)
 
     image = MIMEImage(image_data)
