@@ -11,9 +11,6 @@ from email.mime.image import MIMEImage
 import asyncio
 import os
 import datetime
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 import json
 import urllib.parse
 import traceback
@@ -154,65 +151,6 @@ async def send_email_async(recipient_email, image_data, style):
         logger.error(f"이메일 전송 중 오류 발생: {str(e)}")
         return False
 
-#def upload_image_to_drive(image_data):
-#    logger.info("구글 드라이브 업로드 시작")
-#    try:
-#        creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/drive'])
-#        service = build('drive', 'v3', credentials=creds)
-#        
-#        folder_name = 'image_upload'
-#        folder_id = find_or_create_folder(service, folder_name)
-#        
-#        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-#        temp_image_path = f"temp_image_{timestamp}.png"
-#        with open(temp_image_path, "wb") as f:
-#            f.write(image_data)
-#        
-#        file_metadata = {
-#            'name': f"generated_image_{timestamp}.png",
-#            'parents': [folder_id]
-#        }
-#        media = MediaFileUpload(temp_image_path, resumable=True)
-#        
-#        file = service.files().create(body=file_metadata, media_body=media, fields='id,webViewLink').execute()
-#        file_id = file.get('id')
-#        share_link = file.get('webViewLink')
-#        
-#        service.permissions().create(
-#            fileId=file_id,
-#            body={'type': 'anyone', 'role': 'reader'},
-#            fields='id'
-#        ).execute()
-#        
-#        logger.info(f"구글 드라이브 업로드 성공: {share_link}")
-#        return file_id, share_link
-#    except Exception as e:
-#        logger.error(f"구글 드라이브 업로드 중 오류 발생: {str(e)}")
-#        return None, None
-#    finally:
-#        if os.path.exists(temp_image_path):
-#            os.remove(temp_image_path)
-
-#def find_or_create_folder(service, folder_name):
-#    logger.info(f"구글 드라이브 폴더 찾기/생성: {folder_name}")
-#    results = service.files().list(
-#        q=f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false",
-#        spaces='drive',
-#        fields='files(id, name)'
-#    ).execute()
-#    folders = results.get('files', [])
-#    
-#    if folders:
-#        logger.info(f"기존 폴더 사용: {folders[0]['id']}")
-#        return folders[0]['id']
-#    
-#    folder_metadata = {
-#        'name': folder_name,
-#        'mimeType': 'application/vnd.google-apps.folder'
-#    }
-#    folder = service.files().create(body=folder_metadata, fields='id').execute()
-#    logger.info(f"새 폴더 생성: {folder.get('id')}")
-#    return folder.get('id')
 
 def initialize_session_state():
     if 'original_image' not in st.session_state:
@@ -264,10 +202,6 @@ def process_image(style, result_column):
             st.write(f"🎉 완성된 {style} 게임 캐릭터:")
             st.image(st.session_state.generated_character, caption=f"나만의 {style} 게임 캐릭터", use_column_width=True)
             
-            # 구글 드라이브에 업로드
-#            file_id, share_link = upload_image_to_drive(st.session_state.generated_character)
-#            if file_id:
-#                st.write(f"이미지가 구글 드라이브에 업로드되었습니다. 공유 링크: {share_link}")
                 
             if EMAIL_ENABLED:
                 recipient_email = st.text_input("이메일로 받아보시겠어요? 이메일 주소를 입력해주세요:")
