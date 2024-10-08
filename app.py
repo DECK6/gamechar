@@ -23,8 +23,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger('watchdog').setLevel(logging.WARNING)
 
 # 환경 변수를 통한 시크릿 접근
-SENDER_EMAIL = "dnmdaia@gmail.com"
-SENDER_PASSWORD = "lvap ujnx nweb ifsr"
+
 
 # OpenAI API 키 설정
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
